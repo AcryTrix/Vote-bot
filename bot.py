@@ -16,7 +16,7 @@ class MyBot(commands.Bot):
         intents.message_content = True
         intents.messages = True
         intents.members = True
-        intents.reactions = True
+        intents.reactions = True  # Ensure reactions are enabled
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
@@ -74,7 +74,7 @@ class VoteSelect(discord.ui.Select):
         ]
         super().__init__(placeholder="Choose a vote to edit...", min_values=1, max_values=1, options=options)
 
-    async def callback(self, interaction: discord.Interaction):
+    async def callback(self, select_interaction: discord.Interaction):
         vote_id = int(self.values[0])
         vote_data = active_votes[vote_id]
 
@@ -84,20 +84,20 @@ class VoteSelect(discord.ui.Select):
                 self.vote_id = vote_id
 
             @discord.ui.button(label="Edit Text", style=discord.ButtonStyle.primary)
-            async def edit_text(self, interaction: discord.Interaction, button: discord.ui.Button):
-                await interaction.response.send_modal(EditTextModal(self.vote_id))
+            async def edit_text(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+                await button_interaction.response.send_modal(EditTextModal(self.vote_id))
 
             @discord.ui.button(label="Delete Vote", style=discord.ButtonStyle.danger)
-            async def delete_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+            async def delete_vote(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                 message = vote_data["message"]
                 await message.delete()
                 del active_votes[self.vote_id]
-                await interaction.response.send_message("Vote deleted.", ephemeral=True)
+                await button_interaction.response.send_message("Vote deleted.", ephemeral=True)
 
             @discord.ui.button(label="End Vote", style=discord.ButtonStyle.secondary)
-            async def end_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+            async def end_vote(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                 message = vote_data["message"]
-                message = await interaction.channel.fetch_message(message.id)
+                message = await button_interaction.channel.fetch_message(message.id)
                 reactions = message.reactions
                 results = {}
                 for reaction in reactions:
@@ -107,12 +107,12 @@ class VoteSelect(discord.ui.Select):
                 if not results_text:
                     results_text = "No votes recorded."
                 results_embed = discord.Embed(title="Vote Results", description=results_text, color=random_color())
-                await interaction.response.send_message(embed=results_embed, ephemeral=True)
+                await button_interaction.response.send_message(embed=results_embed, ephemeral=True)
                 await message.delete()
                 del active_votes[self.vote_id]
 
         view = EditView(vote_id)
-        await interaction.response.send_message(f"Selected vote: {vote_data['text']}", view=view, ephemeral=True)
+        await select_interaction.response.send_message(f"Selected vote: {vote_data['text']}", view=view, ephemeral=True)
 
 
 class EditTextModal(discord.ui.Modal, title="Edit Vote Text"):
@@ -122,14 +122,14 @@ class EditTextModal(discord.ui.Modal, title="Edit Vote Text"):
         super().__init__()
         self.vote_id = vote_id
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, modal_interaction: discord.Interaction):
         new_text = self.new_text.value
         vote_data = active_votes[self.vote_id]
         message = vote_data["message"]
         embed = discord.Embed(description=new_text, color=random_color())
         await message.edit(embed=embed)
         vote_data["text"] = new_text
-        await interaction.response.send_message("Vote text updated.", ephemeral=True)
+        await modal_interaction.response.send_message("Vote text updated.", ephemeral=True)
 
 
 @bot.tree.command(
