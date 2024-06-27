@@ -16,7 +16,7 @@ class MyBot(commands.Bot):
         intents.message_content = True
         intents.messages = True
         intents.members = True
-        intents.reactions = True  # Ensure reactions are enabled
+        intents.reactions = True
         super().__init__(command_prefix="!", intents=intents)
 
     async def setup_hook(self):
@@ -102,7 +102,7 @@ class VoteSelect(discord.ui.Select):
                 results = {}
                 for reaction in reactions:
                     if reaction.emoji not in results:
-                        results[reaction.emoji] = reaction.count - 1  # Subtracting bot's own reaction
+                        results[reaction.emoji] = reaction.count - 1
                 results_text = "\n".join([f"{emoji}: {count}" for emoji, count in results.items()])
                 if not results_text:
                     results_text = "No votes recorded."
